@@ -3,9 +3,9 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QLabel
 
-def get_pri_geometry(app):
+def get_pri_geometry(qtapp):
     #app = QtWidgets.QApplication([])
-    desktop = app.desktop()
+    desktop = qtapp.desktop()
     monitors = desktop.screenCount()
 
     screenRect = desktop.availableGeometry(0)
@@ -16,9 +16,9 @@ def get_pri_geometry(app):
     print(width)
     return width, height
 
-def get_sec_geometry(app):
+def get_sec_geometry(qtapp):
     #app = QtWidgets.QApplication([])
-    desktop = app.desktop()
+    desktop = qtapp.desktop()
     monitors = desktop.screenCount()
     if monitors is 1:
         return 0, 0
@@ -30,9 +30,9 @@ def get_sec_geometry(app):
     print(width)
     return width, height
 
-def get_screen_count(app):
+def get_screen_count(qtapp):
     #app = QtWidgets.QApplication([])
-    desktop = app.desktop()
+    desktop = qtapp.desktop()
     monitors = desktop.screenCount()
     print("screen count is ", monitors)
     return monitors

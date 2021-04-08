@@ -16,30 +16,48 @@ import cv2
 import os
 import screen_utils
 import glob
+from flask import Flask, render_template, send_from_directory, request, redirect, url_for, Response
+
+from flask_plugin import *
+from global_def import *
+from ffmpy_utils import *
+#FileFolder = '/home/jason/Videos/Demo_Video/'
+
+os.chdir(FileFolder)
+#mp4_extends = '*.mp4'
+#SIZE_MB = 1024*1024
+file_index = 0
+
+app = Flask(__name__)
+from routes import *
+title = 'Flask Web App'
+
+"""@app.route("/")
+def index():
+    print("find index!")
+    #maps = find_maps()
+    return render_template("index.html", title=title)"""
+
+def find_maps():
+    maps = {}
+    for fname in glob.glob(mp4_extends):
+        if os.path.isfile(fname):
+            key = fname  # .decode()
+            maps[key] = round(os.path.getsize(fname) / SIZE_MB, 3)
+
+    return maps
+
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 
-FileFolder = '/home/jason/Videos/Demo_Video/'
-
-os.chdir(FileFolder)
-mp4_extends = '*.mp4'
-SIZE_MB = 1024*1024
-file_index = 0
 
 def find_filelists():
-    """filelists = []
-    for fname in glob.glob(mp4_extends):
-        print(fname)
-        filelists.extend(fname)"""
-    filelists = glob.glob(mp4_extends)
-
+    filelists = sorted(glob.glob(mp4_extends))
     return filelists
 
 class Video():
-
-
     def __init__(self, filelists, changefiles_cb):
         print("Video Init")
         self.video_index = 0
@@ -118,11 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._timer.timeout.connect(self.play)
         self.ispause = False
         self.isplaying = False
-        #self.cap = cv2.VideoCapture(0)
-        #self.cap = cv2.VideoCapture("./3a_demo.mp4")
-        #self.cap = cv2.VideoCapture("./logos.mp4")
-        #self.cap = cv2.VideoCapture(file_maps[0])
-        #self.video = Video(self.cap)
+
         self.ui.StartHDMIin.clicked.connect(self.startHDMIin)
         self.ui.closeButton.clicked.connect(self.closewindows)
         self.ui.PauseButton.clicked.connect(self.pause)
@@ -139,6 +153,15 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.video = Video(self.video_filelists, self.changeplayingfile)
 
     def changeplayingfile(self, filename):
+        #if str(filename).startswith("1"):
+        if "ultra_fast" in str(filename):
+            self._timer.start(15)
+            print("ultra_fast")
+        elif "fast" in str(filename):
+            self._timer.start(45)
+            print("fast")
+        else:
+            self._timer.start(90)
         self.ui.playingfilelabel.setText("Now playing : " + filename)
 
 
@@ -153,7 +176,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.video = Video(self.video_filelists, self.changeplayingfile)
             self.ui.PauseButton.setEnabled(True)
             self.ui.StartHDMIin.setText("Stop")
-            self._timer.start(90)
+            self._timer.start(60)
             self.isplaying = True
         else:
             self.ui.StartHDMIin.setText("Play All Repeat")
@@ -194,15 +217,18 @@ class MainWindow(QtWidgets.QMainWindow):
 if __name__ == '__main__':
     print_hi('PyCharm')
 
-    app = QtWidgets.QApplication([])
+    qtapp = QtWidgets.QApplication([])
     window = MainWindow()
-    screen_counts = screen_utils.get_screen_count(app)
+    screen_counts = screen_utils.get_screen_count(qtapp)
     print("screen_counts = ", screen_counts)
     file_lists = find_filelists()
-    print("file maps = ", file_lists[0])
-    #for k in file_lists:
-    #    print("file : ", k)
+    print("file maps = ", file_lists)
+
     window.set_video_files(file_lists)
+    route_test()
+    #app.run(debug=False, host='0.0.0.0', port=9090, threaded=True)
+    webapp=ApplicationThread(app)
+    webapp.start()
     #subwindow = SubWindow()
     """desktop = app.desktop()
 
@@ -217,11 +243,11 @@ if __name__ == '__main__':
 
         print(height)
         print(width)"""
-
+    get_thumbnail_from_video(FileFolder + file_lists[0])
 
     window.move(0, 0)
     window.show()
 
-    sys.exit(app.exec_())
+    sys.exit(qtapp.exec_())
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
