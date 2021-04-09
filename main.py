@@ -343,24 +343,14 @@ if __name__ == '__main__':
 
     window.set_video_files(file_lists)
 
-    #app.run(debug=False, host='0.0.0.0', port=9090, threaded=True)
+
     webapp=ApplicationThread(app)
     webapp.start()
-    #subwindow = SubWindow()
-    """desktop = app.desktop()
 
-    # 获取显示器分辨率大小
-    monitors = desktop.screent()
+    #Gen thumbnail at initial
+    for i in range(len(file_lists)):
+        gen_thumbnail_from_video(FileFolder, file_lists[i])
 
-    print(monitors)
-    for i in range(monitors):
-        screenRect = desktop.availableGeometry(i)
-        height = screenRect.height()
-        width = screenRect.width()
-
-        print(height)
-        print(width)"""
-    get_thumbnail_from_video(FileFolder + file_lists[0])
     server = Server()
     server.dataReceived.connect(window.test_from_route)
     window.move(0, 0)
