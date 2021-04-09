@@ -22,8 +22,11 @@
     <form action="/TEST_COLOR/WHITE" method="POST">
         <button name="whitebtn" type="submit" value="white" style="height:100px; width:100px">White</button>
     </form>
-    <h1> Video Streaming </h1>
-    <img src="{{ url_for('video_feed') }}">
+    <form action="/get_filelist" method="GET">
+        <button name="getfilelistbtn" type="submit" value="et_filelist" style="height:100px; width:100px">GetFileList</button>
+    </form>
+    <!--<h1> Video Streaming </h1>
+    <img src="{{ url_for('video_feed') }}">-->
     <hr>
     <h3>Files on Zaku Server</h3>
     <thead>
@@ -32,7 +35,7 @@
     <tbody>
         {% for k,v in files.items() %}
             <p>
-            <tr><td><a href="/download/{{k}}">{{k}} </a> </td><td>{{v}} MB</td></tr>
+            <tr><td><a href="/play/{{k}}">{{k}} </a> </td><td>{{v}} MB</td></tr>
             </p>
         {% endfor %}
     </tbody>

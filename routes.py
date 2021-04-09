@@ -1,19 +1,38 @@
 import os
 import glob
-from main import app
-from flask import Flask, render_template, send_from_directory, request, redirect, url_for, Response
+from main import app, send_data
+from flask import Flask, render_template, send_from_directory, request, redirect, url_for, Response, json
 from global_def import *
+import traceback
 
-title = 'Flask Web App'
+
+
 
 def find_maps():
     maps = {}
+
+    #print("type(maps) :", type(maps))
     for fname in glob.glob(mp4_extends):
         if os.path.isfile(fname):
-            key = fname  # .decode()
+            key = fname
             maps[key] = round(os.path.getsize(fname) / SIZE_MB, 3)
+    print("maps :", maps)
 
     return maps
+
+def get_nest_maps(maps):
+    dict_list = []
+    for x in maps:
+        fl_dic = {}
+        try:
+            print("x: ", x)
+            fl_dic["filename"] = x
+            fl_dic["size"] = maps[x]
+        except:
+            print(traceback.print_exc())
+        dict_list.append(fl_dic)
+    print("nest_dict :", dict_list)
+    return dict_list
 
 @app.route("/")
 def index():
@@ -31,18 +50,23 @@ def upload():
             file.save(dest)
 
     #return index()
-    maps = find_maps()
-    return redirect(url_for('index'))#redirect(url_for("index.html", title=title, files=maps))
+    #maps = find_maps()
+    return redirect(url_for('index'))
 
 @app.route('/download/<filename>')
 def download(filename):
-    fname = filename#.encode('cp936')
+    fname = filename
     return send_from_directory(FileFolder, fname, as_attachment=True)
+
+@app.route('/play/<filename>')
+def play(filename):
+    fname = filename
+    send_data(play_file=fname)
+    return redirect(url_for('index'))
 
 
 @app.route("/TEST_COLOR/RED", methods=['POST', 'GET'])
 def TEST_COLOR_RED():
-    pico.outep.write("red")
     return redirect(url_for('index'))
 
 @app.route("/TEST_COLOR/GREEN", methods=['POST', 'GET'])
@@ -73,6 +97,18 @@ def video_feed():
     #return Response(gen(Video_C("./logos.mp4")),
     #                mimetype='multipart/x-mixed-replace; boundary=frame')
     return
+
+@app.route('/get_filelist', methods=['POST', 'GET'])
+def get_filelist():
+    files_maps = find_maps()
+    nest_files_maps = get_nest_maps(files_maps)
+
+    response = app.response_class(
+        response=json.dumps(nest_files_maps),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.

@@ -3,10 +3,12 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import QTimer
+from PyQt5 import QtWidgets, QtGui, QtCore, QtNetwork
+from PyQt5.QtCore import QTimer, pyqtSignal, QObject, QThread
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QLabel
+import json
+import atexit
 
 from UI.mainwindows import Ui_MainWindow
 
@@ -21,22 +23,49 @@ from flask import Flask, render_template, send_from_directory, request, redirect
 from flask_plugin import *
 from global_def import *
 from ffmpy_utils import *
-#FileFolder = '/home/jason/Videos/Demo_Video/'
-
+import time
+_tries = 0
 os.chdir(FileFolder)
-#mp4_extends = '*.mp4'
-#SIZE_MB = 1024*1024
 file_index = 0
 
 app = Flask(__name__)
 from routes import *
 title = 'Flask Web App'
+SERVER = 'mw_server_b1'
 
-"""@app.route("/")
-def index():
-    print("find index!")
-    #maps = find_maps()
-    return render_template("index.html", title=title)"""
+class Communicate(QObject):
+    print("Enter Communicate")
+    route_sig = pyqtSignal(str)
+
+class Worker(QThread):
+
+    def __init__(self, parent=None, communicate=Communicate()):
+        super(Worker, self).__init__(parent)
+        self.communicate = communicate
+        # self.count = 0
+        self.loop = loop(communicate= self.communicate)
+
+    def run(self):
+        self.loop.methodA()
+
+
+
+# Newly added class with method "methodA"
+class loop(object):
+
+    def __init__(self, communicate=Communicate()):
+        self.count = 0
+        self.communicate = communicate
+
+    def methodA(self):
+        while True:
+            time.sleep(1)
+            """self.count += 1
+            if (self.count % 1 == 0):
+                self.communicate.route_sig.emit("From methodA")"""
+
+
+
 
 def find_maps():
     maps = {}
@@ -48,6 +77,10 @@ def find_maps():
     return maps
 
 
+
+
+
+
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
@@ -55,6 +88,7 @@ def print_hi(name):
 
 def find_filelists():
     filelists = sorted(glob.glob(mp4_extends))
+
     return filelists
 
 class Video():
@@ -130,8 +164,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-
-
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.play)
         self.ispause = False
@@ -142,18 +174,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.PauseButton.clicked.connect(self.pause)
         self.ui.PauseButton.setEnabled(False)
 
+        self.ui.closeEvent = self.closeEvent
+
+        self.communicate = Communicate()
+        self.communicate.route_sig[str].connect(self.test_from_route)
+        self.thread = Worker(communicate=self.communicate)
+        self.thread.start()
 
         '''Sub window setup'''
         self.sub_window = SubWindow()
         self.sub_window.show()
 
+    def closeEvent(self, event):
+        print("closeEvent")
+        server.removeServer(server.fullServerName())
+
+    def __del__(self):
+        print("Main window del")
+        server.removeServer(server.fullServerName())
+
     def set_video_files(self, filelists):
         self.video_filelists = filelists
-        #self.cap = self.video_filelists
-        #self.video = Video(self.video_filelists, self.changeplayingfile)
+
 
     def changeplayingfile(self, filename):
-        #if str(filename).startswith("1"):
+
         if "ultra_fast" in str(filename):
             self._timer.start(15)
             print("ultra_fast")
@@ -168,6 +213,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def closewindows(self):
         self.sub_window.close()
         self.close()
+        server.removeServer(server.fullServerName())
 
     def startHDMIin(self):
         if self.isplaying is False:
@@ -186,13 +232,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.video = None
             self.isplaying = False
 
+    def stopPlay(self):
+        if self.isplaying is True:
+            self.ui.StartHDMIin.setText("Play All Repeat")
+            self.ui.PauseButton.setText("Pause")
+            self.ui.PauseButton.setEnabled(False)
+            self._timer.stop()
+            self.video = None
+            self.isplaying = False
+
     def play(self):
         try:
             self.video.captureNextFrame()
             self.ui.videolabel.setPixmap(self.video.convertFrame())
             self.sub_window.label.setPixmap(self.video.convertFrame())
-            #self.ui.videolabel.setScaledContents(True)
-            #print("play video")
+
         except TypeError:
             print('No Frame')
 
@@ -202,7 +256,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self._timer.start(90)
             self.ispause = False
             self.ui.PauseButton.setText("Pause")
-
             print("re-start")
         else :#if self._timer.isActive():
             self.ispause = True
@@ -210,6 +263,70 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.PauseButton.setText("Re-Start")
 
             print("timer stop")
+
+    def test_from_route(self, data):
+        print("test_from_route data :", data)
+        print(type(data))
+        if data["play_file"] is not None:
+            self.stopPlay()
+            tmp_file_lists = []
+            tmp_file_lists.append(data["play_file"])
+            self.set_video_files(tmp_file_lists)
+            self.startHDMIin()
+
+
+def send_data(**data):
+    socket = QtNetwork.QLocalSocket()
+    socket.connectToServer(SERVER, QtCore.QIODevice.WriteOnly)
+    if socket.waitForConnected(500):
+        socket.write(json.dumps(data).encode('utf-8'))
+        if not socket.waitForBytesWritten(2000):
+            raise RuntimeError('could not write to socket: %s' %
+                  socket.errorString())
+        socket.disconnectFromServer()
+    elif socket.error() == QtNetwork.QAbstractSocket.HostNotFoundError:
+        global _tries
+        if _tries < 10:
+            if not _tries:
+                if QtCore.QProcess.startDetached(
+                    'python', [os.path.abspath(__file__)]):
+                    atexit.register(lambda: send_data(shutdown=True))
+                else:
+                    raise RuntimeError('could not start dialog server')
+            _tries += 1
+            QtCore.QThread.msleep(100)
+            send_data(**data)
+        else:
+            raise RuntimeError('could not connect to server: %s' %
+                socket.errorString())
+    else:
+        raise RuntimeError('could not send data: %s' % socket.errorString())
+
+
+class Server(QtNetwork.QLocalServer):
+    dataReceived = QtCore.pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.newConnection.connect(self.handleConnection)
+        if not self.listen(SERVER):
+            raise RuntimeError(self.errorString())
+
+
+    def handleConnection(self):
+        data = {}
+        socket = self.nextPendingConnection()
+        if socket is not None:
+            if socket.waitForReadyRead(2000):
+                data = json.loads(str(socket.readAll().data(), 'utf-8'))
+                socket.disconnectFromServer()
+            socket.deleteLater()
+        if 'shutdown' in data:
+            self.close()
+            self.removeServer(self.fullServerName())
+            QtWidgets.qApp.quit()
+        else:
+            self.dataReceived.emit(data)
 
 
 
@@ -225,7 +342,7 @@ if __name__ == '__main__':
     print("file maps = ", file_lists)
 
     window.set_video_files(file_lists)
-    route_test()
+
     #app.run(debug=False, host='0.0.0.0', port=9090, threaded=True)
     webapp=ApplicationThread(app)
     webapp.start()
@@ -244,7 +361,8 @@ if __name__ == '__main__':
         print(height)
         print(width)"""
     get_thumbnail_from_video(FileFolder + file_lists[0])
-
+    server = Server()
+    server.dataReceived.connect(window.test_from_route)
     window.move(0, 0)
     window.show()
 

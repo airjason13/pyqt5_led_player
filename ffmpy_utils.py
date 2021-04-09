@@ -17,13 +17,11 @@ def get_video_duration(video_path):
 def get_thumbnail_from_video(video_path):
     thumbnail_path = video_path.replace(".mp4", ".jpg")
     duration_ms = get_video_duration(video_path)
+    print(type(duration_ms))
     ff = ffmpy.FFmpeg(
         inputs={video_path: None},
         outputs={thumbnail_path: ['-ss', '00:00:10.000', '-vframes', '1']}
     )
-    """ff = ffmpy.FFmpeg(
-        inputs={video_path: None},
-        outputs={thumbnail_path: ['-ss', duration_ms, '-vframes', '1']}
-    )"""
+    
     ff.run()
     return thumbnail_path
