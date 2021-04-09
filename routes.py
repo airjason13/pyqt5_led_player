@@ -58,6 +58,12 @@ def download(filename):
     fname = filename
     return send_from_directory(FileFolder, fname, as_attachment=True)
 
+@app.route('/.thumbnail/<filename>')
+def route_get_thumbnail(filename):
+    print("route thumbnail")
+    fname = filename.replace(".mp4", ".gif")
+    return send_from_directory(FileFolder + ThumbnailFileFolder, fname, as_attachment=True)
+
 @app.route('/play/<filename>')
 def play(filename):
     fname = filename

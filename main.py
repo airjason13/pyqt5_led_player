@@ -349,7 +349,8 @@ if __name__ == '__main__':
 
     #Gen thumbnail at initial
     for i in range(len(file_lists)):
-        gen_thumbnail_from_video(FileFolder, file_lists[i])
+        #gen_thumbnail_from_video(FileFolder, file_lists[i])
+        gen_gif_from_video(FileFolder, file_lists[i])
 
     server = Server()
     server.dataReceived.connect(window.test_from_route)

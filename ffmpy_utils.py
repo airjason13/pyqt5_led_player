@@ -35,3 +35,19 @@ def gen_thumbnail_from_video(file_folder, video_path):
 
         ff.run()
     return thumbnail_path
+
+def gen_gif_from_video(file_folder, video_path):
+    thumbnail_path = file_folder + ThumbnailFileFolder + video_path.replace(".mp4", ".gif")
+    if os.path.isfile(thumbnail_path) is False:
+        duration_ms = get_video_duration(video_path)
+        print(type(duration_ms))
+        #duration_ms -= 1
+        str_ms = str(duration_ms)
+        print("str_ms :", str_ms)
+        ff = ffmpy.FFmpeg(
+            inputs={video_path: None},
+            outputs={thumbnail_path: None}
+        )
+
+        ff.run()
+    return thumbnail_path
