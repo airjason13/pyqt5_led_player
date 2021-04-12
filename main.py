@@ -24,6 +24,12 @@ from flask_plugin import *
 from global_def import *
 from ffmpy_utils import *
 import time
+import platform
+from network_utils import *
+
+
+print("platform processor: ", platform.processor())
+
 _tries = 0
 os.chdir(FileFolder)
 file_index = 0
@@ -31,7 +37,7 @@ file_index = 0
 app = Flask(__name__)
 from routes import *
 title = 'Flask Web App'
-SERVER = 'mw_server_b1'
+SERVER = 'mw_server_a12'
 
 class Communicate(QObject):
     print("Enter Communicate")
@@ -56,15 +62,17 @@ class loop(object):
     def __init__(self, communicate=Communicate()):
         self.count = 0
         self.communicate = communicate
-
+        self.socket = socket(AF_INET, SOCK_DGRAM)
+        self.socket.bind(('', 0))
+        self.socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+        data_str = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) + "\n"
+        self.data_byte = data_str.encode()
     def methodA(self):
         while True:
-            time.sleep(1)
-            """self.count += 1
-            if (self.count % 1 == 0):
-                self.communicate.route_sig.emit("From methodA")"""
-
-
+            time.sleep(3)
+            #data = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) + "\n"
+            #byte_data = data.encode()
+            send_broadcast(self.socket, self.data_byte)
 
 
 def find_maps():
@@ -75,11 +83,6 @@ def find_maps():
             maps[key] = round(os.path.getsize(fname) / SIZE_MB, 3)
 
     return maps
-
-
-
-
-
 
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
@@ -168,6 +171,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self._timer.timeout.connect(self.play)
         self.ispause = False
         self.isplaying = False
+
+        self.ipAddress = get_routingIPAddr()
+        self.flask_server_port = flask_server_port
+        print("self.ipAddress : ", self.ipAddress)
 
         self.ui.StartHDMIin.clicked.connect(self.startHDMIin)
         self.ui.closeButton.clicked.connect(self.closewindows)
@@ -340,7 +347,7 @@ if __name__ == '__main__':
     print("screen_counts = ", screen_counts)
     file_lists = find_filelists()
     print("file maps = ", file_lists)
-
+    sync_gif_with_mp4(FileFolder, ThumbnailFileFolder)
     window.set_video_files(file_lists)
 
 
@@ -348,9 +355,9 @@ if __name__ == '__main__':
     webapp.start()
 
     #Gen thumbnail at initial
-    for i in range(len(file_lists)):
+    """for i in range(len(file_lists)):
         #gen_thumbnail_from_video(FileFolder, file_lists[i])
-        gen_gif_from_video(FileFolder, file_lists[i])
+        gen_gif_from_video(FileFolder, file_lists[i])"""
 
     server = Server()
     server.dataReceived.connect(window.test_from_route)

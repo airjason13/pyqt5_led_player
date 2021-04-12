@@ -10,9 +10,8 @@ import traceback
 
 def find_maps():
     maps = {}
-
     #print("type(maps) :", type(maps))
-    for fname in glob.glob(mp4_extends):
+    for fname in sorted(glob.glob(mp4_extends)):
         if os.path.isfile(fname):
             key = fname
             maps[key] = round(os.path.getsize(fname) / SIZE_MB, 3)

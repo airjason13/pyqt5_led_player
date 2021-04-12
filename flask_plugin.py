@@ -1,7 +1,8 @@
 from PyQt5 import QtCore
+from global_def import *
 
 class ApplicationThread(QtCore.QThread):
-    def __init__(self, application, port=9090):
+    def __init__(self, application, port=flask_server_port):
         super(ApplicationThread, self).__init__()
         self.application = application
         self.port = port
