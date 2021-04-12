@@ -26,7 +26,8 @@ from ffmpy_utils import *
 import time
 import platform
 from network_utils import *
-
+import random
+import string
 
 print("platform processor: ", platform.processor())
 
@@ -37,7 +38,17 @@ file_index = 0
 app = Flask(__name__)
 from routes import *
 title = 'Flask Web App'
-SERVER = 'mw_server_a1234'
+
+
+"""def random_string_generator(str_size, allowed_chars):
+    return ''.join(random.choice(allowed_chars) for x in range(str_size))
+
+
+chars = string.ascii_letters #+ string.punctuation
+size = 12
+SERVER=random_string_generator(size, chars)"""
+SERVER = 'mw_server_a51234'
+
 
 class Communicate(QObject):
     print("Enter Communicate")
@@ -335,9 +346,15 @@ class Server(QtNetwork.QLocalServer):
 
     def __init__(self):
         super().__init__()
-        self.newConnection.connect(self.handleConnection)
         if not self.listen(SERVER):
+            self.removeServer(SERVER)
+        self.newConnection.connect(self.handleConnection)
+
+        if not self.listen(SERVER):
+            #print("self.fullServerName():", self.fullServerName())
+            #print(self.errorString())
             raise RuntimeError(self.errorString())
+
 
 
     def handleConnection(self):
@@ -357,6 +374,11 @@ class Server(QtNetwork.QLocalServer):
 
 
 
+    def __del__(self):
+        print("server close")
+        self.close()
+        self.removeServer(self.fullServerName())
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
@@ -373,7 +395,14 @@ if __name__ == '__main__':
     webapp=ApplicationThread(app)
     webapp.start()
 
+
     server = Server()
+    print("server:", server)
+
+    """if server.check_error() is True:
+        server.removeServer(SERVER)
+    server = Server()"""
+
     server.dataReceived.connect(window.test_from_route)
     window.move(0, 0)
     window.show()
