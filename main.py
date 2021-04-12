@@ -37,7 +37,7 @@ file_index = 0
 app = Flask(__name__)
 from routes import *
 title = 'Flask Web App'
-SERVER = 'mw_server_a12'
+SERVER = 'mw_server_a1234'
 
 class Communicate(QObject):
     print("Enter Communicate")
@@ -120,12 +120,32 @@ class Video():
             self.changeplayingfile_cb(self.filelists[self.video_index])
             #self.capture = cv2.VideoCapture("./3a_demo.mp4")
         else:
-            readFrame = cv2.resize(readFrame, (80, 100))
-            readFrame = cv2.flip(readFrame, 1)
-            #readFrame = cv2.imread("./red.jpg")
-            #readFrame = cv2.resize(readFrame, (80, 100))
-            #if (ret == True):
-            self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
+            height, width, channel = readFrame.shape
+            if scale_fit_ori_ratio is True:
+                if width/height >= 100/80:
+                    s_w = 80
+                    s_h = height*(80/width)
+                    bg = cv2.resize(readFrame, (80, 100))
+                    #print("bg.shape : ", bg.shape)
+                    readFrame = cv2.resize(readFrame, (int(s_w), int(s_h) ))
+
+                    bg = np.zeros_like(bg)
+                    y_start = int((100-s_h)/2)
+                    y_content = y_start + int(s_h)
+                    bg[y_start:y_content, 0:int(s_w) ] = readFrame
+                    readFrame = cv2.flip(bg, 1)
+                    self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
+                else:
+                    readFrame = cv2.resize(readFrame, (80, 100))
+                    readFrame = cv2.flip(readFrame, 1)
+
+                    self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
+            else:
+                readFrame = cv2.resize(readFrame, (80, 100))
+                readFrame = cv2.flip(readFrame, 1)
+
+                self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
+            #cv2.imshow("self.currentFrame", self.currentFrame)
 
     def convertFrame(self):
         try:
@@ -350,14 +370,8 @@ if __name__ == '__main__':
     sync_gif_with_mp4(FileFolder, ThumbnailFileFolder)
     window.set_video_files(file_lists)
 
-
     webapp=ApplicationThread(app)
     webapp.start()
-
-    #Gen thumbnail at initial
-    """for i in range(len(file_lists)):
-        #gen_thumbnail_from_video(FileFolder, file_lists[i])
-        gen_gif_from_video(FileFolder, file_lists[i])"""
 
     server = Server()
     server.dataReceived.connect(window.test_from_route)
