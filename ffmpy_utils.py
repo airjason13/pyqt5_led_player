@@ -46,11 +46,16 @@ def gen_gif_from_video(file_folder, video_path):
         #duration_ms -= 1
         str_ms = str(duration_ms)
         print("str_ms :", str_ms)
-        ff = ffmpy.FFmpeg(
+
+        """ff = mpy.FFmpeg(
             inputs={video_path: None},
             outputs={thumbnail_path: None}
-        )
+        )"""
 
+        ff = ffmpy.FFmpeg(
+            inputs={video_path: None},
+            outputs={thumbnail_path: ['-vf', 'scale=240:288']}
+        )
         ff.run()
     return thumbnail_path
 

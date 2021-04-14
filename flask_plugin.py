@@ -12,5 +12,7 @@ class ApplicationThread(QtCore.QThread):
 
     def run(self):
         print("flask start to run")
-        self.application.run(debug=False, host='0.0.0.0', port=self.port, threaded=True)
-
+        try:
+            self.application.run(debug=False, host='0.0.0.0', port=self.port, threaded=True)
+        finally:
+            print("flask End!")

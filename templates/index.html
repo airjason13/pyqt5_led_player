@@ -28,7 +28,12 @@
     <!--<h1> Video Streaming </h1>
     <img src="{{ url_for('video_feed') }}">-->
     <hr>
-    <h3>Files on Zaku Server</h3>
+    <h3>Files on Zaku Server
+        <form action="/playall" method="GET">
+        <button name="playall" type="submit" value="playall" style="height:100px; width:100px">playall</button>
+    </form>
+    </h3>
+
     <thead>
         <!--<tr><th>File Name </th><th class="number">Size MB</th></tr>-->
     </thead>
@@ -36,7 +41,7 @@
         {% for k,v in files.items() %}
             <p>
             <tr><td>
-                <a href="/play/{{k}}"><img src="./.thumbnail/{{k}}" style="float: left;" width="400" height="488">
+                <a href="/play/{{k}}"><img src="./get_thumbnail/{{k}}" style="float: left;" width="400" height="488">
                 </a>
             </p>
         {% endfor %}

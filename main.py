@@ -28,8 +28,29 @@ import platform
 from network_utils import *
 import random
 import string
+import signal
+import sys
 
-print("platform processor: ", platform.processor())
+def receiveSignal(sig, frame):
+    print('sig', sig)
+
+signal.signal(signal.SIGHUP, receiveSignal)
+signal.signal(signal.SIGINT, receiveSignal)
+signal.signal(signal.SIGQUIT, receiveSignal)
+signal.signal(signal.SIGILL, receiveSignal)
+signal.signal(signal.SIGTRAP, receiveSignal)
+signal.signal(signal.SIGABRT, receiveSignal)
+signal.signal(signal.SIGBUS, receiveSignal)
+signal.signal(signal.SIGFPE, receiveSignal)
+#signal.signal(signal.SIGKILL, receiveSignal)
+signal.signal(signal.SIGUSR1, receiveSignal)
+signal.signal(signal.SIGSEGV, receiveSignal)
+signal.signal(signal.SIGUSR2, receiveSignal)
+signal.signal(signal.SIGPIPE, receiveSignal)
+signal.signal(signal.SIGALRM, receiveSignal)
+signal.signal(signal.SIGTERM, receiveSignal)
+
+
 
 _tries = 0
 os.chdir(FileFolder)
@@ -37,18 +58,13 @@ file_index = 0
 
 app = Flask(__name__)
 from routes import *
-title = 'Flask Web App'
 
 
-"""def random_string_generator(str_size, allowed_chars):
-    return ''.join(random.choice(allowed_chars) for x in range(str_size))
 
-
-chars = string.ascii_letters #+ string.punctuation
-size = 12
-SERVER=random_string_generator(size, chars)"""
-SERVER = 'mw_server_a51234'
-
+#import random, string
+#SERVER = ''.join(random.choice(string.ascii_letters) for x in range(10))
+SERVER = 'mw_server_a16'
+print("ASERVER =", SERVER)
 
 class Communicate(QObject):
     print("Enter Communicate")
@@ -76,14 +92,16 @@ class loop(object):
         self.socket = socket(AF_INET, SOCK_DGRAM)
         self.socket.bind(('', 0))
         self.socket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        data_str = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) + "\n"
+        data_str = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) #+ "\n"
         self.data_byte = data_str.encode()
     def methodA(self):
         while True:
             time.sleep(3)
             #data = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) + "\n"
             #byte_data = data.encode()
-            send_broadcast(self.socket, self.data_byte)
+            if is_interface_up(get_wireless_interface()) is True:
+                #print("send broadcast")
+                send_broadcast(self.socket, self.data_byte)
 
 
 def find_maps():
@@ -104,6 +122,42 @@ def find_filelists():
     filelists = sorted(glob.glob(mp4_extends))
 
     return filelists
+
+
+"""def rotate(image, angle, center=None, scale=1.0):
+    (h, w) = image.shape[:2]
+    if center is None:
+        center = (w / 2, h / 2)
+
+    M = cv2.getRotationMatrix2D(center, angle, scale)
+    rotated = cv2.warpAffine(image, M, (w, h))
+
+    return rotated"""
+def rotate(mat, angle):
+    """
+    Rotates an image (angle in degrees) and expands image to avoid cropping
+    """
+
+    height, width = mat.shape[:2] # image shape has 3 dimensions
+    image_center = (width/2, height/2) # getRotationMatrix2D needs coordinates in reverse order (width, height) compared to shape
+
+    rotation_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
+
+    # rotation calculates the cos and sin, taking absolutes of those.
+    abs_cos = abs(rotation_mat[0,0])
+    abs_sin = abs(rotation_mat[0,1])
+
+    # find the new width and height bounds
+    bound_w = int(height * abs_sin + width * abs_cos)
+    bound_h = int(height * abs_cos + width * abs_sin)
+
+    # subtract old image center (bringing image back to origo) and adding the new image center coordinates
+    rotation_mat[0, 2] += bound_w/2 - image_center[0]
+    rotation_mat[1, 2] += bound_h/2 - image_center[1]
+
+    # rotate image with the new bounds and translated rotation matrix
+    rotated_mat = cv2.warpAffine(mat, rotation_mat, (bound_w, bound_h))
+    return rotated_mat
 
 class Video():
     def __init__(self, filelists, changefiles_cb):
@@ -132,28 +186,43 @@ class Video():
             #self.capture = cv2.VideoCapture("./3a_demo.mp4")
         else:
             height, width, channel = readFrame.shape
+            #eep aspect ratio
             if scale_fit_ori_ratio is True:
-                if width/height >= 100/80:
+                if width/height >= 96/80:
                     s_w = 80
                     s_h = height*(80/width)
-                    bg = cv2.resize(readFrame, (80, 100))
+                    bg = cv2.resize(readFrame, (80, 96))
                     #print("bg.shape : ", bg.shape)
                     readFrame = cv2.resize(readFrame, (int(s_w), int(s_h) ))
 
                     bg = np.zeros_like(bg)
-                    y_start = int((100-s_h)/2)
+                    y_start = int((96-s_h)/2)
                     y_content = y_start + int(s_h)
                     bg[y_start:y_content, 0:int(s_w) ] = readFrame
                     readFrame = cv2.flip(bg, 1)
                     self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
                 else:
-                    readFrame = cv2.resize(readFrame, (80, 100))
+                    readFrame = cv2.resize(readFrame, (80, 96))
                     readFrame = cv2.flip(readFrame, 1)
 
+
+
                     self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
+            #force scale to 80x100
             else:
-                readFrame = cv2.resize(readFrame, (80, 100))
-                readFrame = cv2.flip(readFrame, 1)
+                if horizontal_display is True:
+                    """horizontal"""
+                    readFrame = rotate(readFrame, 90)
+                    print("horizontal shape :", readFrame.shape)
+                    cv2.imshow("test", readFrame)
+                    readFrame = cv2.resize(readFrame, (80, 96))
+                    readFrame = cv2.flip(readFrame, 1)
+
+                else:
+                    """vertical"""
+                    #below is ori
+                    readFrame = cv2.resize(readFrame, (80, 96))
+                    readFrame = cv2.flip(readFrame, 1)
 
                 self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
             #cv2.imshow("self.currentFrame", self.currentFrame)
@@ -181,16 +250,27 @@ class SubWindow(QtWidgets.QWidget):
 
         # Label
         self.label = QLabel(self)
-        self.label.setGeometry(0, 0, 80, 100)
+        self.label.setGeometry(0, 0, 80, 96)
+
         self.label.setText('Sub Window')
         self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
         #self.setWindowFlag(QtCore.Qt.CustomizeWindowHint)
         self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
 
+        self.closeEvent = self.closeEvent
+
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setStyleSheet('font-size:40px')
         self.move(1920, 0)
         self.showFullScreen()
+
+        def closeEvent(self, event):
+            print("closeEvent")
+            server.removeServer(server.fullServerName())
+
+        def __del__(self):
+            print("Main window del")
+            server.removeServer(server.fullServerName())
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -205,7 +285,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ipAddress = get_routingIPAddr()
         self.flask_server_port = flask_server_port
-        print("self.ipAddress : ", self.ipAddress)
+        if self.ipAddress is not None:
+            print("self.ipAddress : ", self.ipAddress)
 
         self.ui.StartHDMIin.clicked.connect(self.startHDMIin)
         self.ui.closeButton.clicked.connect(self.closewindows)
@@ -304,16 +385,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def test_from_route(self, data):
         print("test_from_route data :", data)
-        print(type(data))
-        if data["play_file"] is not None:
+        print("data.get('playall') =", data.get('playall'))
+        print(type(data.get('playall')))
+        #play single file in loop
+        #if data["play_file"] is not None:
+        if data.get('play_file') is not None:
             self.stopPlay()
             tmp_file_lists = []
             tmp_file_lists.append(data["play_file"])
             self.set_video_files(tmp_file_lists)
             self.startHDMIin()
+        elif str(data.get('playall')) == "playall":
+            print("playall")
+            self.stopPlay()
+            tmp_file_lists = find_filelists()
+            self.set_video_files(tmp_file_lists)
+            self.startHDMIin()
 
 
-def send_data(**data):
+
+def send_message(**data):
     socket = QtNetwork.QLocalSocket()
     socket.connectToServer(SERVER, QtCore.QIODevice.WriteOnly)
     if socket.waitForConnected(500):
@@ -328,12 +419,12 @@ def send_data(**data):
             if not _tries:
                 if QtCore.QProcess.startDetached(
                     'python', [os.path.abspath(__file__)]):
-                    atexit.register(lambda: send_data(shutdown=True))
+                    atexit.register(lambda: send_message(shutdown=True))
                 else:
                     raise RuntimeError('could not start dialog server')
             _tries += 1
             QtCore.QThread.msleep(100)
-            send_data(**data)
+            send_message(**data)
         else:
             raise RuntimeError('could not connect to server: %s' %
                 socket.errorString())
@@ -346,13 +437,21 @@ class Server(QtNetwork.QLocalServer):
 
     def __init__(self):
         super().__init__()
-        if not self.listen(SERVER):
-            self.removeServer(SERVER)
+
+
+        if self.isListening():
+            print("listening")
+        else:
+            print("not listening")
+
+        if self.hasPendingConnections():
+            print("has Pending Connections")
+        else:
+            print("No Pending Connections")
+
         self.newConnection.connect(self.handleConnection)
 
         if not self.listen(SERVER):
-            #print("self.fullServerName():", self.fullServerName())
-            #print(self.errorString())
             raise RuntimeError(self.errorString())
 
 
@@ -374,14 +473,17 @@ class Server(QtNetwork.QLocalServer):
 
 
 
-    def __del__(self):
-        print("server close")
-        self.close()
-        self.removeServer(self.fullServerName())
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
+
+    get_wireless_interface
+    #print("wireless_interface : ", get_wireless_interface())
+    #print("", is_interface_up("wlp9s0"))
+    #ThumbnailFileFolder
+    if os.path.isdir(FileFolder + ThumbnailFileFolder) is not True:
+        os.mkdir(FileFolder + ThumbnailFileFolder)
 
     qtapp = QtWidgets.QApplication([])
     window = MainWindow()

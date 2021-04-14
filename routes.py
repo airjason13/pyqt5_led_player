@@ -1,6 +1,6 @@
 import os
 import glob
-from main import app, send_data
+from main import app, send_message
 from flask import Flask, render_template, send_from_directory, request, redirect, url_for, Response, json
 from global_def import *
 import traceback
@@ -57,7 +57,7 @@ def download(filename):
     fname = filename
     return send_from_directory(FileFolder, fname, as_attachment=True)
 
-@app.route('/.thumbnail/<filename>')
+@app.route('/get_thumbnail/<filename>')
 def route_get_thumbnail(filename):
     print("route thumbnail")
     fname = filename.replace(".mp4", ".gif")
@@ -66,9 +66,13 @@ def route_get_thumbnail(filename):
 @app.route('/play/<filename>')
 def play(filename):
     fname = filename
-    send_data(play_file=fname)
+    send_message(play_file=fname)
     return redirect(url_for('index'))
 
+@app.route('/playall', methods=['POST', 'GET'])
+def playall():
+    send_message(playall='playall')
+    return redirect(url_for('index'))
 
 @app.route("/TEST_COLOR/RED", methods=['POST', 'GET'])
 def TEST_COLOR_RED():
@@ -120,3 +124,17 @@ def print_hi(name):
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
 def route_test():
     print("route test!")
+
+@app.after_request
+def add_header(r):
+    print("add_header for disable cache")
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    r.headers['Cache-Control'] = 'public, max-age=0'
+    return r
+
