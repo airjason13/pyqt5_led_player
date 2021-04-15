@@ -30,6 +30,7 @@ import random
 import string
 import signal
 import sys
+from datetime import datetime
 
 def receiveSignal(sig, frame):
     print('sig', sig)
@@ -61,10 +62,21 @@ from routes import *
 
 
 
-#import random, string
+import random, string
+
 #SERVER = ''.join(random.choice(string.ascii_letters) for x in range(10))
-SERVER = 'mw_server_a16'
-print("ASERVER =", SERVER)
+#SERVER = 'mw_server_a16'
+#print("ASERVER =", SERVER)
+SERVER = None
+
+def get_server_name():
+    global SERVER
+    if SERVER is None:
+        #now=datetime.now()
+        #SERVER = now.strftime("%H:%M:%S")
+        SERVER = "OrIHCSZBQz"
+        print("SERVER :", SERVER)
+    return SERVER
 
 class Communicate(QObject):
     print("Enter Communicate")
@@ -97,8 +109,7 @@ class loop(object):
     def methodA(self):
         while True:
             time.sleep(3)
-            #data = "server_ip:" + get_routingIPAddr() + ",port:" + str(flask_server_port) + "\n"
-            #byte_data = data.encode()
+
             if is_interface_up(get_wireless_interface()) is True:
                 #print("send broadcast")
                 send_broadcast(self.socket, self.data_byte)
@@ -259,10 +270,11 @@ class SubWindow(QtWidgets.QWidget):
 
         self.closeEvent = self.closeEvent
 
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.label.setStyleSheet('font-size:40px')
-        self.move(1920, 0)
-        self.showFullScreen()
+        if screen_utils.get_screen_count(qtapp) == 2 :
+            self.label.setAlignment(QtCore.Qt.AlignCenter)
+            self.label.setStyleSheet('font-size:40px')
+            self.move(1920, 0)
+            self.showFullScreen()
 
         def closeEvent(self, event):
             print("closeEvent")
@@ -406,7 +418,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def send_message(**data):
     socket = QtNetwork.QLocalSocket()
-    socket.connectToServer(SERVER, QtCore.QIODevice.WriteOnly)
+    print("in send message, SERVER:", get_server_name())
+    socket.connectToServer(get_server_name(), QtCore.QIODevice.WriteOnly)
     if socket.waitForConnected(500):
         socket.write(json.dumps(data).encode('utf-8'))
         if not socket.waitForBytesWritten(2000):
@@ -451,7 +464,9 @@ class Server(QtNetwork.QLocalServer):
 
         self.newConnection.connect(self.handleConnection)
 
-        if not self.listen(SERVER):
+
+
+        if not self.listen(get_server_name()):
             raise RuntimeError(self.errorString())
 
 
@@ -478,7 +493,6 @@ class Server(QtNetwork.QLocalServer):
 if __name__ == '__main__':
     print_hi('PyCharm')
 
-    get_wireless_interface
     #print("wireless_interface : ", get_wireless_interface())
     #print("", is_interface_up("wlp9s0"))
     #ThumbnailFileFolder
@@ -501,9 +515,7 @@ if __name__ == '__main__':
     server = Server()
     print("server:", server)
 
-    """if server.check_error() is True:
-        server.removeServer(SERVER)
-    server = Server()"""
+
 
     server.dataReceived.connect(window.test_from_route)
     window.move(0, 0)
