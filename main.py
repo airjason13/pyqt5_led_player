@@ -31,6 +31,8 @@ import string
 import signal
 import sys
 from datetime import datetime
+from pynput.mouse import Button, Controller
+mouse = Controller()
 
 def receiveSignal(sig, frame):
     print('sig', sig)
@@ -187,8 +189,12 @@ class Video():
         return readFrame
 
     def captureNextFrame(self):
+
         ret, readFrame = self.capture.read()
         if ret is False:
+            if platform.processor().startswith("x86_64") is False:
+                mouse.position = (10, 20)
+                mouse.move(10, -10)
             self.video_index += 1
             if self.video_index >= len(self.filelists):
                 self.video_index = 0
