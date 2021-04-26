@@ -41,8 +41,13 @@
         {% for k,v in files.items() %}
             <p>
             <tr><td>
+                <form action="/play/{{k}}" method="GET">
+                    <button type="submit" style="float: left;" width="400" height="488"><img src="./get_thumbnail/{{k}}"></button>
+                </form>
+                <!--
                 <a href="/play/{{k}}"><img src="./get_thumbnail/{{k}}" style="float: left;" width="400" height="488">
-                </a>
+                -->
+                </td>
             </p>
         {% endfor %}
     </tbody>

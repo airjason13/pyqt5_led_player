@@ -15,7 +15,7 @@ def find_maps():
         if os.path.isfile(fname):
             key = fname
             maps[key] = round(os.path.getsize(fname) / SIZE_MB, 3)
-    print("maps :", maps)
+    #print("maps :", maps)
 
     return maps
 
@@ -59,12 +59,13 @@ def download(filename):
 
 @app.route('/get_thumbnail/<filename>')
 def route_get_thumbnail(filename):
-    print("route thumbnail")
+    #print("route thumbnail")
     fname = filename.replace(".mp4", ".gif")
     return send_from_directory(FileFolder + ThumbnailFileFolder, fname, as_attachment=True)
 
 @app.route('/play/<filename>')
 def play(filename):
+    print("route play filename :", filename)
     fname = filename
     send_message(play_file=fname)
     return redirect(url_for('index'))
@@ -125,16 +126,16 @@ def print_hi(name):
 def route_test():
     print("route test!")
 
-@app.after_request
-def add_header(r):
-    print("add_header for disable cache")
+#@app.after_request
+#def add_header(r):
+#    print("add_header for disable cache")
     """
     Add headers to both force latest IE rendering engine or Chrome Frame,
     and also to cache the rendered page for 10 minutes.
     """
-    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    r.headers["Pragma"] = "no-cache"
-    r.headers["Expires"] = "0"
-    r.headers['Cache-Control'] = 'public, max-age=0'
-    return r
+#    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+#    r.headers["Pragma"] = "no-cache"
+#    r.headers["Expires"] = "0"
+#    r.headers['Cache-Control'] = 'public, max-age=0'
+#    return r
 

@@ -8,4 +8,4 @@ ThumbnailFileFolder = '.thumbnail/'
 flask_server_port = 9090
 broadcast_port = 5000
 scale_fit_ori_ratio = False
-horizontal_display = False
+horizontal_display = True

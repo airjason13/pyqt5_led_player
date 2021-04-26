@@ -230,8 +230,8 @@ class Video():
                 if horizontal_display is True:
                     """horizontal"""
                     readFrame = rotate(readFrame, 90)
-                    print("horizontal shape :", readFrame.shape)
-                    cv2.imshow("test", readFrame)
+                    #print("horizontal shape :", readFrame.shape)
+                    #cv2.imshow("test", readFrame)
                     readFrame = cv2.resize(readFrame, (80, 96))
                     readFrame = cv2.flip(readFrame, 1)
 
