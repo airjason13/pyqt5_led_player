@@ -281,7 +281,9 @@ class SubWindow(QtWidgets.QWidget):
             self.label.setStyleSheet('font-size:40px')
             self.move(1920, 0)
             self.showFullScreen()
-
+        else :
+            self.move(0, 0)
+            
         def closeEvent(self, event):
             print("closeEvent")
             server.removeServer(server.fullServerName())
@@ -321,7 +323,8 @@ class MainWindow(QtWidgets.QMainWindow):
         '''Sub window setup'''
         self.sub_window = SubWindow()
         self.sub_window.show()
-
+        #self.startHDMIin()
+        
     def closeEvent(self, event):
         print("closeEvent")
         server.removeServer(server.fullServerName())
@@ -527,6 +530,7 @@ if __name__ == '__main__':
     window.move(0, 0)
     window.show()
 
+    window.startHDMIin()
     sys.exit(qtapp.exec_())
 
 
