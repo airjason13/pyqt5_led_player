@@ -76,7 +76,7 @@ def get_server_name():
     if SERVER is None:
         #now=datetime.now()
         #SERVER = now.strftime("%H:%M:%S")
-        SERVER = "OrIHCSZBQz"
+        SERVER = "OrIHCSZBkyyukiif"
         print("SERVER :", SERVER)
     return SERVER
 
@@ -173,15 +173,21 @@ def rotate(mat, angle):
     return rotated_mat
 
 class Video():
-    def __init__(self, filelists, changefiles_cb):
+    def __init__(self, filelists, changefiles_cb, width, height):
         print("Video Init")
+        self.output_width = width
+        self.output_height = height
         self.video_index = 0
         self.filelists = filelists
+        print("A", filelists)
         self.capture = cv2.VideoCapture(self.filelists[self.video_index])
         self.currentFrame = np.array([])
         self.changeplayingfile_cb = changefiles_cb
         self.changeplayingfile_cb(self.filelists[self.video_index])
 
+    def change_resolution(self, width, height):
+        self.output_width = width
+        self.output_height = height
 
     def captureFrame(self):
         ret, readFrame = self.capture.read()
@@ -205,21 +211,27 @@ class Video():
             height, width, channel = readFrame.shape
             #eep aspect ratio
             if scale_fit_ori_ratio is True:
-                if width/height >= 96/80:
-                    s_w = 80
+                #if width/height >= 96/80:
+                if width / height >= self.output_height / self.output_width:
+                    '''s_w = 80
                     s_h = height*(80/width)
-                    bg = cv2.resize(readFrame, (80, 96))
+                    bg = cv2.resize(readFrame, (80, 96))'''
+                    s_w = self.output_width
+                    s_h = height * (self.output_width / width)
+                    bg = cv2.resize(readFrame, (self.output_width, self.output_height))
                     #print("bg.shape : ", bg.shape)
                     readFrame = cv2.resize(readFrame, (int(s_w), int(s_h) ))
 
                     bg = np.zeros_like(bg)
-                    y_start = int((96-s_h)/2)
+                    '''y_start = int((96-s_h)/2)'''
+                    y_start = int((self.output_height - s_h) / 2)
                     y_content = y_start + int(s_h)
                     bg[y_start:y_content, 0:int(s_w) ] = readFrame
                     readFrame = cv2.flip(bg, 1)
                     self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
                 else:
-                    readFrame = cv2.resize(readFrame, (80, 96))
+                    #readFrame = cv2.resize(readFrame, (80, 96))
+                    readFrame = cv2.resize(readFrame, (self.output_width, self.output_height))
                     readFrame = cv2.flip(readFrame, 1)
 
 
@@ -229,16 +241,17 @@ class Video():
             else:
                 if horizontal_display is True:
                     """horizontal"""
-                    readFrame = rotate(readFrame, 90)
-                    #print("horizontal shape :", readFrame.shape)
-                    #cv2.imshow("test", readFrame)
+                    '''readFrame = rotate(readFrame, 90)
                     readFrame = cv2.resize(readFrame, (80, 96))
+                    readFrame = cv2.flip(readFrame, 1)'''
+                    readFrame = rotate(readFrame, self.output_height)
+                    readFrame = cv2.resize(readFrame, (self.output_width, self.output_height))
                     readFrame = cv2.flip(readFrame, 1)
 
                 else:
                     """vertical"""
                     #below is ori
-                    readFrame = cv2.resize(readFrame, (80, 96))
+                    readFrame = cv2.resize(readFrame, (self.output_width, self.output_height))
                     readFrame = cv2.flip(readFrame, 1)
 
                 self.currentFrame = cv2.cvtColor(readFrame, cv2.COLOR_BGR2RGB)
@@ -261,13 +274,13 @@ class Video():
         print("del Video")
 
 class SubWindow(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, width, height):
         super(SubWindow, self).__init__()
-        self.resize(400, 300)
+        self.resize(width, height)
 
         # Label
         self.label = QLabel(self)
-        self.label.setGeometry(0, 0, 80, 96)
+        self.label.setGeometry(0, 0, width, height)
 
         self.label.setText('Sub Window')
         self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
@@ -284,17 +297,23 @@ class SubWindow(QtWidgets.QWidget):
         else :
             self.move(0, 0)
             
-        def closeEvent(self, event):
-            print("closeEvent")
-            server.removeServer(server.fullServerName())
+    def closeEvent(self, event):
+        print("closeEvent")
+        server.removeServer(server.fullServerName())
 
-        def __del__(self):
-            print("Main window del")
-            server.removeServer(server.fullServerName())
+    def __del__(self):
+        print("Main window del")
+        server.removeServer(server.fullServerName())
+
+    def change_resolution(self, width, height):
+        self.resize(width, height)
+        self.label.resize(width, height)
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
+        self.parse_init_config()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
@@ -308,10 +327,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.ipAddress is not None:
             print("self.ipAddress : ", self.ipAddress)
 
-        self.ui.StartHDMIin.clicked.connect(self.startHDMIin)
+        self.ui.StartHDMIin.clicked.connect(self.startHDMIin_clicked)
         self.ui.closeButton.clicked.connect(self.closewindows)
+        self.ui.setresolutionButton.clicked.connect(self.setResolution)
         self.ui.PauseButton.clicked.connect(self.pause)
         self.ui.PauseButton.setEnabled(False)
+
+        self.ui.widthedit.setPlainText(str(self.output_width))
+        self.ui.heightedit.setPlainText(str(self.output_height))
 
         self.ui.closeEvent = self.closeEvent
 
@@ -321,13 +344,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thread.start()
 
         '''Sub window setup'''
-        self.sub_window = SubWindow()
+        self.sub_window = SubWindow(self.output_width, self.output_height)
         self.sub_window.show()
         #self.startHDMIin()
         
     def closeEvent(self, event):
         print("closeEvent")
         server.removeServer(server.fullServerName())
+        self.closewindows()
 
     def __del__(self):
         print("Main window del")
@@ -335,7 +359,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_video_files(self, filelists):
         self.video_filelists = filelists
+        for i in self.video_filelists:
+            self.ui.filelistWidget.addItem(i)
 
+        self.ui.filelistWidget.itemClicked.connect(self.filelistsitem_clicked)
+
+    def setResolution(self):
+        print("setResolution")
+        self.output_width = int(self.ui.widthedit.toPlainText())
+        self.output_height = int(self.ui.heightedit.toPlainText())
+        print("self.output_width = ", self.output_width)
+        print("self.output_height = ", self.output_height)
+        line_width = "width=" + str(self.output_width) + "\n"
+        line_height = "height=" + str(self.output_height) + "\n"
+        L = [line_width, line_height]
+        file_uri = FileFolder + init_config_file
+        config_file = open(file_uri, 'w')
+        config_file.writelines(L)
+        config_file.close()
+        os.system('sync')
+        self.sub_window.change_resolution(self.output_width, self.output_height)
+        self.video.change_resolution(self.output_width, self.output_height)
+
+    def filelistsitem_clicked(self, item):
+        print("filelistsitem_clicked")
+        print(item.text())
+        self.stopPlay()
+        tmp_file_lists = []
+        tmp_file_lists.append(item.text())
+        #self.set_video_files(tmp_file_lists)
+        self.startHDMIin(tmp_file_lists, single_file=True)
+        tmp_file_lists = None
 
     def changeplayingfile(self, filename):
 
@@ -349,17 +403,53 @@ class MainWindow(QtWidgets.QMainWindow):
             self._timer.start(90)
         self.ui.playingfilelabel.setText("Now playing : " + filename)
 
+    def parse_init_config(self):
+        # Using readlines()
+        file_uri = FileFolder + init_config_file
+        if os.path.isfile(file_uri) is False:
+            L = ["width=80\n", "height=96\n"]
+            config_file = open(file_uri, 'w')
+            config_file.writelines(L)
+            config_file.close()
+            os.system('sync')
+
+        config_file = open(file_uri, 'r')
+        Lines = config_file.readlines()
+
+        count = 0
+        # Strips the newline character
+        for line in Lines:
+            count += 1
+            print("Line{}: {}".format(count, line.strip()))
+            tmp = line.split("=")
+            print("tmp[0] = ", tmp[0])
+            print("tmp[1] = ", tmp[1])
+            if tmp[0] == 'width':
+                self.output_width = int(tmp[1])
+            elif tmp[0] == 'height':
+                self.output_height = int(tmp[1])
+
+    def __delete__(self, instance):
+        server.removeServer(server.fullServerName())
+        self.closewindows()
 
     def closewindows(self):
         self.sub_window.close()
         self.close()
         server.removeServer(server.fullServerName())
 
-    def startHDMIin(self):
+    def startHDMIin_clicked(self):
+        window.startHDMIin(file_lists, single_file=False)
+
+    def startHDMIin(self, file_lists, single_file=True):
         if self.isplaying is False:
+            self.video = None
             print("startHDMIin")
-            #self.video = Video(self.video_filelists)
-            self.video = Video(self.video_filelists, self.changeplayingfile)
+            if single_file == False:
+                #self.video = Video(self.video_filelists)
+                self.video = Video(self.video_filelists, self.changeplayingfile, self.output_width, self.output_height)
+            else:
+                self.video = Video(file_lists, self.changeplayingfile, self.output_width, self.output_height)
             self.ui.PauseButton.setEnabled(True)
             self.ui.StartHDMIin.setText("Stop")
             self._timer.start(60)
@@ -415,13 +505,13 @@ class MainWindow(QtWidgets.QMainWindow):
             tmp_file_lists = []
             tmp_file_lists.append(data["play_file"])
             self.set_video_files(tmp_file_lists)
-            self.startHDMIin()
+            self.startHDMIin(self.video_filelists, single_file=True)
         elif str(data.get('playall')) == "playall":
             print("playall")
             self.stopPlay()
             tmp_file_lists = find_filelists()
             self.set_video_files(tmp_file_lists)
-            self.startHDMIin()
+            self.startHDMIin(self.video_filelists, single_file=False)
 
 
 
@@ -501,7 +591,7 @@ class Server(QtNetwork.QLocalServer):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     print_hi('PyCharm')
-
+    os.system("export export QT_DEBUG_PLUGINS=1")
     #print("wireless_interface : ", get_wireless_interface())
     #print("", is_interface_up("wlp9s0"))
     #ThumbnailFileFolder
@@ -530,7 +620,7 @@ if __name__ == '__main__':
     window.move(0, 0)
     window.show()
 
-    window.startHDMIin()
+    window.startHDMIin(file_lists, single_file=False)
     sys.exit(qtapp.exec_())
 
 

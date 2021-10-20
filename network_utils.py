@@ -46,7 +46,7 @@ def get_wireless_interface():
 
     if platform.processor().startswith("x86_64") is True:
         #print("x86_64 ")
-        wireless_interface = "wlp9s0"
+        wireless_interface = "wlp3s0"
     else:
         #print("platform processor: ", platform.processor())
         wireless_interface = "wlan0"

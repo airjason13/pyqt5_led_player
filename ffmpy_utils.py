@@ -11,6 +11,8 @@ def get_video_duration(video_path):
     #duration = video.get(cv2.CAP_PROP_POS_MSEC)
     frame_count = video.get(cv2.CAP_PROP_FRAME_COUNT)
     fps = video.get(cv2.CAP_PROP_FPS)
+    print("frame_count = ", frame_count)
+    print("fps = ", fps)
     duration_ms = frame_count/fps
     print(duration_ms)
     #print(frame_count)

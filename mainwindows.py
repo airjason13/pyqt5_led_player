@@ -40,6 +40,10 @@ class Ui_MainWindow(object):
         self.filelistWidget.setObjectName("filelistWidget")
         self.playingfilelabel = QtWidgets.QLabel(self.centralwidget)
         self.playingfilelabel.setGeometry(QtCore.QRect(310, 40, 261, 31))
+        #resolutionlabel
+        self.resolutionlabel = QtWidgets.QLabel(self.centralwidget)
+        self.resolutionlabel.setGeometry(QtCore.QRect(400, 40, 261, 31))
+
         self.playingfilelabel.setObjectName("playingfilelabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
@@ -61,3 +65,5 @@ class Ui_MainWindow(object):
         self.closeButton.setText(_translate("MainWindow", "Close"))
         self.PauseButton.setText(_translate("MainWindow", "Pause"))
         self.playingfilelabel.setText(_translate("MainWindow", "Now Playing :"))
+        #resolution
+        self.resolutionlabel.setText(_translate("MainWindow", "Resolution:"))
